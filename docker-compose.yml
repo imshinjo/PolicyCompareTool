@@ -1,0 +1,17 @@
+services:
+  standalone-chrome:
+    image: selenium/standalone-chrome
+    container_name: standalone-chrome
+    ports:
+      - "4444:4444" # WebDriver の接続用ポート
+      - "7900:7900" # VNC 用ポート（デバッグ時に使用）
+    shm_size: 2g # 共有メモリサイズの設定
+
+  python:
+    build: .
+    container_name: py-container
+    volumes: 
+      - .:/workspace
+    command: /bin/bash
+    tty: true
+    stdin_open: true
