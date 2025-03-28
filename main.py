@@ -4,7 +4,6 @@ import zipfile
 import shutil
 import glob
 import subprocess
-import difflib
 
 
 if __name__ == "__main__":
@@ -26,9 +25,16 @@ if __name__ == "__main__":
             )
         edge_download = functions.clicker(edge_download_link)
 
-        #chrome
+        # chrome
         chrome_template_download = functions.clicker("https://dl.google.com/dl/edgedl/chrome/policy/policy_templates.zip")
         chrome_update_download = functions.clicker("http://dl.google.com/update2/enterprise/googleupdateadmx.zip")
+
+        # # office
+        # office_download_link = functions.clicker(
+        #     "https://www.microsoft.com/en-us/download/details.aspx?id=49030",
+        #     "//*[@id="dlc-details-multi-download-modal"]/div/div/div[2]/div/table/tbody/tr[2]/td[1]/div"
+        #     )
+        # office_download = functions.clicker(office_download_link)
 
     finally:
         functions.driver.quit()
@@ -55,6 +61,9 @@ if __name__ == "__main__":
     for file_extension in ["*.zip", "*.cab"]:
         for file in glob.glob(f"/workspace/download/{file_extension}"):
             os.remove(file)
+
+    # OneDrive.admlを移動
+    shutil.copy("/workspace/download/OneDrive.adml", "/workspace/download/new_policy/")
 
     # 既存ポリシーテンプレートを複製
     shutil.copytree(
@@ -111,31 +120,12 @@ if __name__ == "__main__":
             # フォルダBに対応するファイルが存在する場合のみ比較
             if os.path.exists(file_b_path):
                 try:
-                    # テキストファイルとして内容を比較(admlファイルはutf-16で扱える)
-                    with open(file_a_path, 'r', encoding='utf-16') as file_a, open(file_b_path, 'r', encoding='utf-16') as file_b:
-                        diff = list(difflib.unified_diff(
-                            file_a.readlines(),
-                            file_b.readlines(),
-                            fromfile=f"{folder_a}/{relative_path}",
-                            tofile=f"{folder_b}/{relative_path}"
-                        ))
-
-                        # 差分がある場合のみファイルに出力
-                        if diff:
-                            print(f"差分が検出されました（テキストファイル）: {relative_path}")
-                            diff_output_path = os.path.join(output_folder, f"{relative_path.replace(os.sep, '_')}_diff.txt")
-                            os.makedirs(os.path.dirname(diff_output_path), exist_ok=True)  # サブフォルダがある場合に備えて作成
-                            with open(diff_output_path, 'w', encoding='utf-8') as diff_file:
-                                diff_file.write(''.join(diff))
-                            print(f"差分をファイルに出力しました: {diff_output_path}")
+                    # UTF-8で比較
+                    functions.compare_text_files(file_a_path, file_b_path, 'utf-8', relative_path, folder_a, folder_b, output_folder)
 
                 except UnicodeDecodeError:
-                    # 非テキストファイルの場合はバイナリ比較を実施
-                    with open(file_a_path, 'rb') as file_a, open(file_b_path, 'rb') as file_b:
-                        binary_diff = file_a.read() != file_b.read()
-
-                        if binary_diff:
-                            print(f"差分が検出されました（非テキストファイル）: {relative_path}")
+                    # UTF-16で再試行
+                    functions.compare_text_files(file_a_path, file_b_path, 'utf-16', relative_path, folder_a, folder_b, output_folder)
 
 
 

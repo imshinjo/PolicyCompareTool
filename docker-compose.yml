@@ -3,15 +3,24 @@ services:
     image: selenium/standalone-chrome
     container_name: standalone-chrome
     ports:
-      - "4444:4444" # WebDriver の接続用ポート
-      - "7900:7900" # VNC 用ポート（デバッグ時に使用）
-    shm_size: 2g # 共有メモリサイズの設定
+      - "4444:4444"
+      - "7900:7900"
+    shm_size: 2g
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444"]
+      interval: 10s
+      timeout: 60s
+      retries: 10
 
-  python:
+  docker-python:
     build: .
-    container_name: py-container
+    container_name: docker-python
     volumes: 
       - .:/workspace
-    command: /bin/bash
-    tty: true
-    stdin_open: true
+    command: python main.py
+    depends_on:
+      - standalone-chrome
+
+networks:
+  default:
+    name: mynetwork

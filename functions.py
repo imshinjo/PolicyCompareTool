@@ -8,6 +8,7 @@ import os
 from urllib.parse import urlparse
 from urllib.parse import unquote
 from bs4 import BeautifulSoup
+import difflib
 
 
 options = Options()
@@ -57,6 +58,7 @@ def clicker(target, xpath=None):
                 href = element.get_attribute("href")
                 next_url = href
 
+    # 引数にXpathが指定されていない場合は，URLのファイルをダウンロードする
     else:
         parsed_url = urlparse(target)
         file_name = unquote(os.path.basename(parsed_url.path))
@@ -68,6 +70,27 @@ def clicker(target, xpath=None):
 
     return next_url
 
+
+def compare_text_files(file_a_path, file_b_path, encoding, relative_path, folder_a, folder_b, output_folder):
+    try:
+        with open(file_a_path, 'r', encoding=encoding) as file_a, open(file_b_path, 'r', encoding=encoding) as file_b:
+            diff = list(difflib.unified_diff(
+                file_a.readlines(),
+                file_b.readlines(),
+                fromfile=f"{folder_a}/{relative_path}",
+                tofile=f"{folder_b}/{relative_path}"
+            ))
+
+            if diff:
+                print(f"差分が検出されました（テキストファイル, {encoding}): {relative_path}")
+                diff_output_path = os.path.join(output_folder, f"{relative_path.replace(os.sep, '_')}_diff.txt")
+                os.makedirs(os.path.dirname(diff_output_path), exist_ok=True)
+                with open(diff_output_path, 'w', encoding='utf-8') as diff_file:
+                    diff_file.write(''.join(diff))
+                print(f"差分をファイルに出力しました: {diff_output_path}")
+            return True
+    except UnicodeDecodeError:
+        return False
 
 
 def find_policy_report_folder(base_path):
