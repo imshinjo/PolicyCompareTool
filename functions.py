@@ -9,12 +9,14 @@ from urllib.parse import urlparse
 from urllib.parse import unquote
 from bs4 import BeautifulSoup
 import difflib
+import json
 
 
 options = Options()
-#options.add_argument("--headless")
+options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
+options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
 remote_server_url = "http://standalone-chrome:4444/wd/hub"
 
@@ -24,7 +26,7 @@ driver = webdriver.Remote(
     options=options
 )
 
-os.makedirs("/workspace/download/", exist_ok=True)
+os.makedirs("/mnt/download/", exist_ok=True)
 
 def clicker(target, xpath=None):
     next_url = None
@@ -45,12 +47,13 @@ def clicker(target, xpath=None):
         else:
             # Xpathで指定された要素にhrefがなければその要素をクリックする
             element.click()
+            
             # クリック後に遷移したページのURLを戻り値とする
             next_url = driver.current_url
 
             # ひとつめの引数で指定されたURLがedgeのものであれば，動的に生成されるページなので下記の特別な手順を行う
             if target == "https://www.microsoft.com/ja-jp/edge/business/download":
-                # ふたつめの引数で指定されたXpathをクリックした後に，同意してダウンロード のボタンが表示されるまで待つ
+                # 同意してダウンロード のボタン要素を取得する
                 element = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="eula-dialog"]/div[5]/a'))
                 )
@@ -58,11 +61,35 @@ def clicker(target, xpath=None):
                 href = element.get_attribute("href")
                 next_url = href
 
+            if target == "https://www.microsoft.com/en-us/download/details.aspx?id=49030":
+                # "Choose the download you want" を選択する
+                element = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, '//*[@id="dlc-details-multi-download-modal"]/div/div/div[2]/div/table/tbody/tr[1]/td[1]/div/label'))
+                )
+                element.click()
+                
+                element = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, '//*[@id="dlc-details-multi-download-modal"]/div/div/div[2]/div/div/div[1]/button'))
+                )
+                element.click()
+
+                # ログを取得してダウンロードURLを探す
+                logs = driver.get_log("performance")
+                for log in logs:
+                    try:
+                        message = json.loads(log["message"])["message"]
+                        if "Network.responseReceived" in message["method"]:
+                            url = message["params"]["response"]["url"]
+                            if ".exe" in url:  # ダウンロードリンクの可能性があるURLを取得
+                                next_url = url
+                    except:
+                        pass
+
     # 引数にXpathが指定されていない場合は，URLのファイルをダウンロードする
     else:
         parsed_url = urlparse(target)
         file_name = unquote(os.path.basename(parsed_url.path))
-        save_path = os.path.join('/workspace/download/', file_name)
+        save_path = os.path.join('/mnt/download/', file_name)
 
         with urllib.request.urlopen(target) as web_file, open(save_path, 'wb') as local_file:
             local_file.write(web_file.read())

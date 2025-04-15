@@ -16,11 +16,8 @@ services:
     build: .
     container_name: docker-python
     volumes: 
-      - .:/workspace
+      - .:/mnt
     command: python main.py
     depends_on:
       - standalone-chrome
-
-networks:
-  default:
-    name: mynetwork
+  
