@@ -153,7 +153,10 @@ if __name__ == "__main__":
         f.write("検索結果:\n\n")
 
     # "PolicyReport" を含むフォルダを検索
-    policy_report_folder = functions.find_policy_report_folder(download_dir)
+    for root, dirs, files in os.walk(download_dir):
+        for dir_name in dirs:
+            if "PolicyReport" in dir_name:
+                policy_report_folder = os.path.join(root, dir_name)
     
     if policy_report_folder:
         print(f"対象のフォルダが見つかりました: {policy_report_folder}")

@@ -120,14 +120,6 @@ def compare_text_files(file_a_path, file_b_path, encoding, relative_path, folder
         return False
 
 
-def find_policy_report_folder(base_path):
-    # "PolicyReport" を含むフォルダを検索
-    for root, dirs, files in os.walk(base_path):
-        for dir_name in dirs:
-            if "PolicyReport" in dir_name:
-                return os.path.join(root, dir_name)
-    return None
-
 def search_in_diff_output_folder(search_term, diff_output_folder, source_html_file, output_file):
     # DiffOutput フォルダ内のすべてのファイルを検索
     with open(output_file, 'a', encoding='utf-8') as out_file:  # ファイルを追記モードで開く
@@ -144,6 +136,7 @@ def search_in_diff_output_folder(search_term, diff_output_folder, source_html_fi
                             )
                             print(output_line.strip())  # コンソールに出力
                             out_file.write(output_line)  # ファイルに出力
+
 
 def process_html_files(folder_path, diff_output_folder, output_file):
     # フォルダ内のすべてのファイルを処理
