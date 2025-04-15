@@ -46,7 +46,7 @@ def clicker(target, xpath=None):
             next_url = href
         else:
             # Xpathで指定された要素にhrefがなければその要素をクリックする
-            element.click()
+            driver.execute_script("arguments[0].click();", element)
             
             # クリック後に遷移したページのURLを戻り値とする
             next_url = driver.current_url
