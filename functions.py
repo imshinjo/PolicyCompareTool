@@ -36,7 +36,7 @@ def clicker(target, xpath=None):
     # ふたつめの引数でXpathが指定されている場合はその要素を取得する
     if xpath:
         # Xpathで指定された要素が見つかるまで待機する
-        element = WebDriverWait(driver, 10).until(
+        element = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.XPATH, xpath))
         )
         href = element.get_attribute("href")
@@ -98,19 +98,18 @@ def clicker(target, xpath=None):
     return next_url
 
 
-def compare_text_files(file_a_path, file_b_path, encoding, relative_path, folder_a, folder_b, output_folder):
+def compare_text_files(file_a_path, file_b_path, encoding, file_name, output_folder):
     try:
         with open(file_a_path, 'r', encoding=encoding) as file_a, open(file_b_path, 'r', encoding=encoding) as file_b:
             diff = list(difflib.unified_diff(
                 file_a.readlines(),
                 file_b.readlines(),
-                fromfile=f"{folder_a}/{relative_path}",
-                tofile=f"{folder_b}/{relative_path}"
+                fromfile = file_a_path,
+                tofile = file_b_path
             ))
 
             if diff:
-                print(f"差分が検出されました（テキストファイル, {encoding}): {relative_path}")
-                diff_output_path = os.path.join(output_folder, f"{relative_path.replace(os.sep, '_')}_diff.txt")
+                diff_output_path = os.path.join(output_folder, f"{file_name}_{encoding}_diff.txt")
                 os.makedirs(os.path.dirname(diff_output_path), exist_ok=True)
                 with open(diff_output_path, 'w', encoding='utf-8') as diff_file:
                     diff_file.write(''.join(diff))
@@ -131,31 +130,14 @@ def search_in_diff_output_folder(search_term, diff_output_folder, source_html_fi
                     for line_number, line in enumerate(lines, start=1):
                         if search_term in line:
                             output_line = (
-                                f"一致しました: ファイル: {file_path}, 行番号: {line_number}, "
-                                f"内容: {line.strip()}, 元のHTMLファイル: {source_html_file}\n"
+                                "-----------------------------------------------------------\n"
+                                "このレポートに含まれるポリシーは，新しいテンプレートで内容が変更されています\n"
+                                f"ポリシーレポート: {source_html_file}\n"
+                                f"ポリシー名: {search_term}\n"
+                                f"ポリシーテンプレート: {file}\n"
+                                f"行番号: {line_number}\n"
+                                #f"内容: {line.strip()}\n"
+                                "-----------------------------------------------------------\n"
                             )
-                            print(output_line.strip())  # コンソールに出力
                             out_file.write(output_line)  # ファイルに出力
-
-
-def process_html_files(folder_path, diff_output_folder, output_file):
-    # フォルダ内のすべてのファイルを処理
-    for root, _, files in os.walk(folder_path):
-        for file in files:
-            file_path = os.path.join(root, file)
-            
-            # HTMLファイルを読み込む
-            with open(file_path, 'r', encoding='utf-16') as html_file:
-                html_content = html_file.read()
-
-            # BeautifulSoupオブジェクトの作成
-            soup = BeautifulSoup(html_content, 'html.parser')
-
-            # spanタグを取得し、gpmc_settingname属性の値を抽出
-            span = soup.find('span', attrs={'gpmc_settingname': True})
-            if span:
-                gpmc_settingname_value = span['gpmc_settingname']
-                
-                # DiffOutputフォルダ内で検索 (元のHTMLファイル名を渡す)
-                search_in_diff_output_folder(gpmc_settingname_value, diff_output_folder, file_path, output_file)
 
